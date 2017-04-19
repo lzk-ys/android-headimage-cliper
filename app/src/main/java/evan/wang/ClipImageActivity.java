@@ -33,8 +33,8 @@ public class ClipImageActivity extends AppCompatActivity implements View.OnClick
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_clip_image);
-        type = getIntent().getIntExtra("type", 1);
         initView();
+        initData();
     }
 
     /**
@@ -52,10 +52,8 @@ public class ClipImageActivity extends AppCompatActivity implements View.OnClick
         btnOk.setOnClickListener(this);
     }
 
-    @Override
-    protected void onResume() {
-        super.onResume();
-        Log.i(TAG, "image uri: "+getIntent().getData());
+    private void initData(){
+        type = getIntent().getIntExtra("type", 1);
         if (type == 1) {
             clipViewLayout1.setVisibility(View.VISIBLE);
             clipViewLayout2.setVisibility(View.GONE);

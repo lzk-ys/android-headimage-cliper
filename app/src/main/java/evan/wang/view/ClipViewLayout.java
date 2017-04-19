@@ -1,5 +1,8 @@
 package evan.wang.view;
 
+import android.animation.Animator;
+import android.animation.AnimatorSet;
+import android.animation.ValueAnimator;
 import android.content.ContentResolver;
 import android.content.Context;
 import android.content.res.TypedArray;
@@ -16,20 +19,35 @@ import android.net.Uri;
 import android.provider.MediaStore;
 import android.text.TextUtils;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.util.TypedValue;
 import android.view.MotionEvent;
+import android.view.ViewParent;
 import android.view.ViewTreeObserver;
+import android.view.animation.AccelerateInterpolator;
+import android.view.animation.AnimationSet;
 import android.widget.ImageView;
 import android.widget.RelativeLayout;
+
+import junit.runner.Version;
 
 import java.io.IOException;
 
 import evan.wang.R;
+import evan.wang.gestures.GestureDetector;
+import evan.wang.gestures.OnGestureListener;
+import evan.wang.gestures.VersionedGestureDetector;
+import evan.wang.utils.DisplayUtils;
+
+import static android.view.MotionEvent.ACTION_CANCEL;
+import static android.view.MotionEvent.ACTION_DOWN;
+import static android.view.MotionEvent.ACTION_UP;
 
 /**
  * 头像上传原图裁剪容器
  */
-public class ClipViewLayout extends RelativeLayout {
+public class ClipViewLayout extends RelativeLayout implements OnGestureListener{
+    private static final String TAG = ClipViewLayout.class.getSimpleName();
     //裁剪原图
     private ImageView imageView;
     //裁剪框
@@ -60,8 +78,9 @@ public class ClipViewLayout extends RelativeLayout {
     //最小缩放比例
     private float minScale;
     //最大缩放比例
-    private float maxScale = 4;
+    private float maxScale = 3;
 
+    private GestureDetector mScaleDragDetector;  //监听拖拽和缩放事件
 
     public ClipViewLayout(Context context) {
         this(context, null);
@@ -88,6 +107,8 @@ public class ClipViewLayout extends RelativeLayout {
                 (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 1, getResources().getDisplayMetrics()));
         //裁剪框类型(圆或者矩形)
         int clipType = array.getInt(R.styleable.ClipViewLayout_clipType, 1);
+
+        mScaleDragDetector = VersionedGestureDetector.newInstance(this.getContext(),this);
 
         //回收
         array.recycle();
@@ -137,9 +158,13 @@ public class ClipViewLayout extends RelativeLayout {
             return;
         }
 
+        if(imageView == null){
+            return;
+        }
+
         //原图可能很大，现在手机照出来都3000*2000左右了，直接加载可能会OOM
         //这里decode出720*1280 左右的照片
-        Bitmap bitmap = decodeSampledBitmap(path, 720, 1280);
+        Bitmap bitmap = decodeSampledBitmap(path, imageView.getWidth(), imageView.getHeight());
         if (bitmap == null) {
             return;
         }
@@ -224,7 +249,7 @@ public class ClipViewLayout extends RelativeLayout {
     }
 
 
-    @Override
+   /* @Override
     public boolean onTouchEvent(MotionEvent event) {
         switch (event.getAction() & MotionEvent.ACTION_MASK) {
             case MotionEvent.ACTION_DOWN:
@@ -243,19 +268,27 @@ public class ClipViewLayout extends RelativeLayout {
                 }
                 break;
             case MotionEvent.ACTION_UP:
+                // If the user has zoomed less than min scale, zoom back
+                // to min scale
+                if (getScale() < minScale) {
+                    RectF rect = getMatrixRectF(matrix);
+                    if (null != rect) {
+                        startScaleAnimation(getScale(),minScale,rect.centerX(),rect.centerY());
+                    }
+                }
                 break;
             case MotionEvent.ACTION_POINTER_UP:
                 mode = NONE;
                 break;
             case MotionEvent.ACTION_MOVE:
                 if (mode == DRAG) { //拖动
-                    matrix.set(savedMatrix);
+*//*                    matrix.set(savedMatrix);
                     float dx = event.getX() - start.x;
                     float dy = event.getY() - start.y;
                     mVerticalPadding = clipView.getClipRect().top;
                     matrix.postTranslate(dx, dy);
                     //检查边界
-                    checkBorder();
+                    checkBorder();*//*
                 } else if (mode == ZOOM) { //缩放
                     //缩放后两手指间的距离
                     float newDist = spacing(event);
@@ -263,19 +296,19 @@ public class ClipViewLayout extends RelativeLayout {
                         //手势缩放比例
                         float scale = newDist / oldDist;
                         if (scale < 1) { //缩小
-                            if (getScale() > minScale) {
+//                            if (getScale() > minScale) {
                                 matrix.set(savedMatrix);
                                 mVerticalPadding = clipView.getClipRect().top;
                                 matrix.postScale(scale, scale, mid.x, mid.y);
                                 //缩放到最小范围下面去了，则返回到最小范围大小
-                                while (getScale() < minScale) {
+     *//*                           while (getScale() < minScale) {
                                     //返回到最小范围的放大比例
                                     scale = 1 + 0.01F;
                                     matrix.postScale(scale, scale, mid.x, mid.y);
-                                }
-                            }
+                                }*//*
+//                            }
                             //边界检查
-                            checkBorder();
+//                            checkBorder();
                         } else { //放大
                             if (getScale() <= maxScale) {
                                 matrix.set(savedMatrix);
@@ -289,6 +322,128 @@ public class ClipViewLayout extends RelativeLayout {
                 break;
         }
         return true;
+    }*/
+
+    @Override
+    public boolean onTouchEvent(MotionEvent ev) {
+        boolean handled = false;
+
+        if (hasDrawable(imageView)) {
+            ViewParent parent = imageView.getParent();
+            switch (ev.getAction()) {
+                case ACTION_DOWN:
+                    // First, disable the Parent from intercepting the touch
+                    // event
+                    if (null != parent) {
+                        parent.requestDisallowInterceptTouchEvent(true);
+                    } else {
+                        Log.i(TAG, "onTouch getParent() returned null");
+                    }
+                    // If we're flinging, and the user presses down, cancel
+                    // fling
+                    cancelFling();
+                    break;
+
+                case ACTION_CANCEL:
+                case ACTION_UP:
+                    // If the user has zoomed less than min scale, zoom back
+                    // to min scale
+                    if (getScale() < minScale || getScale() > maxScale) {  //缩放回弹
+                        float targetScale = getScale() < minScale ? minScale : maxScale;
+                        RectF rect = getMatrixRectF(matrix);
+                        if (null != rect) {
+                            startScaleAnimation(getScale(),targetScale,rect.centerX(),rect.centerY());
+                            handled = true;
+                        }
+                    }else if(checkBorder()){  //拖拽回弹
+                        imageView.setImageMatrix(matrix);
+                    }
+                    break;
+            }
+
+            // Try the Scale/Drag detector
+            if (null != mScaleDragDetector) {
+                handled = mScaleDragDetector.onTouchEvent(ev);
+            }
+
+        }
+
+        return handled;
+
+    }
+
+    @Override
+    public void onDrag(float dx, float dy) {
+        Log.i(TAG,"onDrag dx = "+dx+" dy = "+dy);
+        if (mScaleDragDetector.isScaling()) {
+            return; // Do not drag if we are already scaling
+        }
+
+        mVerticalPadding = clipView.getClipRect().top;
+        matrix.postTranslate(dx, dy);
+        imageView.setImageMatrix(matrix);
+    }
+
+    @Override
+    public void onFling(float startX, float startY, float velocityX, float velocityY) {
+
+    }
+
+    @Override
+    public void onScale(float scaleFactor, float focusX, float focusY) {
+        Log.i(TAG,"onScale scaleFactor = "+scaleFactor+" focusX = "+focusX+" focusY = "+focusY);
+        //手势缩放比例
+        mVerticalPadding = clipView.getClipRect().top;
+        matrix.postScale(scaleFactor, scaleFactor, focusX, focusY);
+        imageView.setImageMatrix(matrix);
+    }
+
+    /**
+     * @return true if the ImageView exists, and its Drawable exists
+     */
+    private static boolean hasDrawable(ImageView imageView) {
+        return null != imageView && null != imageView.getDrawable();
+    }
+
+    private void cancelFling() {
+
+    }
+
+    private static final int DEFAULT_ZOOM_DURATION = 200;
+
+    private void startScaleAnimation(final float currentZoom, final float targetZoom, final float focalX, final float focalY)
+    {
+        Rect rect = clipView.getClipRect();
+        final float centerX = rect.width()/2f + rect.left;
+        final float centerY = rect.height()/2f + rect.top;
+
+        ValueAnimator valueAnimator = ValueAnimator.ofFloat(0, 1);
+        valueAnimator.setDuration(DEFAULT_ZOOM_DURATION);
+        valueAnimator.setInterpolator(new AccelerateInterpolator());
+        valueAnimator.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
+            @Override
+            public void onAnimationUpdate(ValueAnimator animation) {
+                float progress = (Float) animation.getAnimatedValue();
+                float scale = currentZoom + progress * (targetZoom - currentZoom);
+                float translationX = focalX + progress * (centerX - focalX);
+                float translationY = focalY + progress * (centerY - focalY);
+                float deltaScale = scale / getScale();
+                RectF rect = getMatrixRectF(matrix);  //获取当前图片中心点
+                float deltaX = translationX - rect.centerX();
+                float deltaY = translationY - rect.centerY();
+                if(progress <= 1){
+                    Log.d(TAG,"onAnimationUpdate progress = "+progress+" deltaScale = "+deltaScale +" getScale() = "+getScale() +" centerX = "+centerX+" centerY = "+centerY +" deltaX = "+deltaX+" deltaY = "+deltaY+" curX = "+rect.centerX()+" curY = "+rect.centerY());
+                    matrix.postTranslate(deltaX,deltaY);
+                    matrix.postScale(deltaScale,deltaScale,deltaX, deltaY);
+                    imageView.setImageMatrix(matrix);
+                    if(progress == 1){
+                        checkBorder();
+                        imageView.setImageMatrix(matrix);
+                    }
+                }
+            }
+        });
+        valueAnimator.start();
     }
 
     /**
@@ -307,30 +462,44 @@ public class ClipViewLayout extends RelativeLayout {
     /**
      * 边界检测
      */
-    private void checkBorder() {
+    private boolean checkBorder() {
+        boolean isOutBounds = false;
         RectF rect = getMatrixRectF(matrix);
+        if (null == rect) {
+            return false;
+        }
         float deltaX = 0;
         float deltaY = 0;
+        if (null == imageView) {
+            return false;
+        }
         int width = imageView.getWidth();
         int height = imageView.getHeight();
         // 如果宽或高大于屏幕，则控制范围 ; 这里的0.001是因为精度丢失会产生问题，但是误差一般很小，所以我们直接加了一个0.01
         if (rect.width() >= width - 2 * mHorizontalPadding) {
             if (rect.left > mHorizontalPadding) {
                 deltaX = -rect.left + mHorizontalPadding;
+                isOutBounds = true;
             }
             if (rect.right < width - mHorizontalPadding) {
                 deltaX = width - mHorizontalPadding - rect.right;
+                isOutBounds = true;
             }
         }
         if (rect.height() >= height - 2 * mVerticalPadding) {
             if (rect.top > mVerticalPadding) {
                 deltaY = -rect.top + mVerticalPadding;
+                isOutBounds = true;
             }
             if (rect.bottom < height - mVerticalPadding) {
                 deltaY = height - mVerticalPadding - rect.bottom;
+                isOutBounds = true;
             }
         }
-        matrix.postTranslate(deltaX, deltaY);
+        if(isOutBounds){
+            matrix.postTranslate(deltaX, deltaY);
+        }
+        return isOutBounds;
     }
 
     /**
