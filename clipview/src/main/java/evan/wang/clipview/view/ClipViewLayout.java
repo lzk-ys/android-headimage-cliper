@@ -26,7 +26,7 @@ import android.view.animation.AccelerateInterpolator;
 import android.widget.ImageView;
 import android.widget.RelativeLayout;
 
-import com.wang.clipview.R;
+import evan.wang.clipview.R;
 import evan.wang.clipview.gestures.GestureDetector;
 import evan.wang.clipview.gestures.OnGestureListener;
 import evan.wang.clipview.gestures.VersionedGestureDetector;
@@ -66,6 +66,7 @@ public class ClipViewLayout extends RelativeLayout implements OnGestureListener 
     private PointF start = new PointF();
     //记录缩放时两指中间点坐标
     private PointF mid = new PointF();
+    private final float[] translateValues = new float[2];
     private float oldDist = 1f;
     //用于存放矩阵的9个值
     private final float[] matrixValues = new float[9];
@@ -350,7 +351,8 @@ public class ClipViewLayout extends RelativeLayout implements OnGestureListener 
                             handled = true;
                         }
                     }else if(checkBorder()){  //拖拽回弹
-                        imageView.setImageMatrix(matrix);
+                        matrix.postTranslate(-translateValues[0],-translateValues[1]);
+                        startDragAnimation(translateValues[0],translateValues[1]);
                     }
                     break;
             }
@@ -404,6 +406,31 @@ public class ClipViewLayout extends RelativeLayout implements OnGestureListener 
     }
 
     private static final int DEFAULT_ZOOM_DURATION = 200;
+
+    private void startDragAnimation(final float deltaX, final float deltaY)
+    {
+        ValueAnimator valueAnimator = ValueAnimator.ofFloat(0, 1);
+        valueAnimator.setDuration(DEFAULT_ZOOM_DURATION);
+        valueAnimator.setInterpolator(new AccelerateInterpolator());
+        valueAnimator.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
+            private float prevX = 0;
+            private float prevY = 0;
+            @Override
+            public void onAnimationUpdate(ValueAnimator animation) {
+                float progress = (Float) animation.getAnimatedValue();
+                float dX = deltaX * progress - prevX;
+                float dY = deltaY * progress - prevY;
+                if(progress <= 1){
+                    Log.d(TAG,"startDragAnimation deltaX = "+deltaX + " deltaY = "+deltaY+" dX = "+dX +" dY = "+dY +" prevX = "+prevX +" prevY = "+prevY );
+                    matrix.postTranslate(dX,dY);
+                    imageView.setImageMatrix(matrix);
+                    prevX += dX;
+                    prevY += dY;
+                }
+            }
+        });
+        valueAnimator.start();
+    }
 
     private void startScaleAnimation(final float currentZoom, final float targetZoom, final float focalX, final float focalY)
     {
@@ -491,7 +518,10 @@ public class ClipViewLayout extends RelativeLayout implements OnGestureListener 
             }
         }
         if(isOutBounds){
+            translateValues[0] = deltaX;
+            translateValues[1] = deltaY;
             matrix.postTranslate(deltaX, deltaY);
+            Log.d(TAG,"checkBorder deltaX = "+deltaX + " deltaY = "+deltaY);
         }
         return isOutBounds;
     }
