@@ -18,7 +18,7 @@
 
 ### 调用示例：
     <!--圆形裁剪框 -->
-    <evan.wang.view.ClipViewLayout
+    <com.lucien.clipview.view.ClipViewLayout
        android:id="@+id/clipViewLayout1"
        android:layout_width="match_parent"
        android:layout_height="match_parent"
@@ -27,7 +27,7 @@
        app:mHorizontalPadding="30dp" />
     
     <!--矩形裁剪框 -->
-    <evan.wang.view.ClipViewLayout
+    <com.lucien.clipview.view.ClipViewLayout
        android:id="@+id/clipViewLayout2"
        android:layout_width="match_parent"
        android:layout_height="match_parent"

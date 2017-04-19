@@ -1,7 +1,5 @@
-package evan.wang.view;
+package evan.wang.clipview.view;
 
-import android.animation.Animator;
-import android.animation.AnimatorSet;
 import android.animation.ValueAnimator;
 import android.content.ContentResolver;
 import android.content.Context;
@@ -25,19 +23,15 @@ import android.view.MotionEvent;
 import android.view.ViewParent;
 import android.view.ViewTreeObserver;
 import android.view.animation.AccelerateInterpolator;
-import android.view.animation.AnimationSet;
 import android.widget.ImageView;
 import android.widget.RelativeLayout;
 
-import junit.runner.Version;
+import com.wang.clipview.R;
+import evan.wang.clipview.gestures.GestureDetector;
+import evan.wang.clipview.gestures.OnGestureListener;
+import evan.wang.clipview.gestures.VersionedGestureDetector;
 
 import java.io.IOException;
-
-import evan.wang.R;
-import evan.wang.gestures.GestureDetector;
-import evan.wang.gestures.OnGestureListener;
-import evan.wang.gestures.VersionedGestureDetector;
-import evan.wang.utils.DisplayUtils;
 
 import static android.view.MotionEvent.ACTION_CANCEL;
 import static android.view.MotionEvent.ACTION_DOWN;
@@ -46,7 +40,7 @@ import static android.view.MotionEvent.ACTION_UP;
 /**
  * 头像上传原图裁剪容器
  */
-public class ClipViewLayout extends RelativeLayout implements OnGestureListener{
+public class ClipViewLayout extends RelativeLayout implements OnGestureListener {
     private static final String TAG = ClipViewLayout.class.getSimpleName();
     //裁剪原图
     private ImageView imageView;

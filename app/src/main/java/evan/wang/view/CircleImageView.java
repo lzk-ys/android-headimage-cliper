@@ -39,6 +39,7 @@ import android.widget.ImageView;
 
 import evan.wang.R;
 
+
 /**
  * https://github.com/hdodenhof/CircleImageView
  */

@@ -9,12 +9,11 @@ import android.util.Log;
 import android.view.View;
 import android.widget.ImageView;
 import android.widget.TextView;
-
+import evan.wang.clipview.view.ClipViewLayout;
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
 
-import evan.wang.view.ClipViewLayout;
 
 /**
  * 头像裁剪Activity

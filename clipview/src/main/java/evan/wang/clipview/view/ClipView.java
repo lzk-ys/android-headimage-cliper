@@ -1,4 +1,4 @@
-package evan.wang.view;
+package evan.wang.clipview.view;
 
 import android.content.Context;
 import android.graphics.Canvas;

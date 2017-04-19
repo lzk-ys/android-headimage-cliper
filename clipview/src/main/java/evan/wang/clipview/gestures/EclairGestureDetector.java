@@ -13,13 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *******************************************************************************/
-package evan.wang.gestures;
+package evan.wang.clipview.gestures;
 
 import android.annotation.TargetApi;
 import android.content.Context;
 import android.view.MotionEvent;
 
-import evan.wang.utils.Compat;
+import evan.wang.clipview.utils.Compat;
+
 
 @TargetApi(5)
 public class EclairGestureDetector extends CupcakeGestureDetector {

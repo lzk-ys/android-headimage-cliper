@@ -1,5 +1,3 @@
-package evan.wang.gestures;
-
 /*******************************************************************************
  * Copyright 2011, 2012 Chris Banes.
  *
@@ -15,28 +13,18 @@ package evan.wang.gestures;
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *******************************************************************************/
+package evan.wang.clipview.gestures;
 
-import android.content.Context;
-import android.os.Build;
+import android.view.MotionEvent;
 
-public final class VersionedGestureDetector {
+public interface GestureDetector {
 
-    public static GestureDetector newInstance(Context context,
-                                              OnGestureListener listener) {
-        final int sdkVersion = Build.VERSION.SDK_INT;
-        GestureDetector detector;
+    boolean onTouchEvent(MotionEvent ev);
 
-        if (sdkVersion < Build.VERSION_CODES.ECLAIR) {
-            detector = new CupcakeGestureDetector(context);
-        } else if (sdkVersion < Build.VERSION_CODES.FROYO) {
-            detector = new EclairGestureDetector(context);
-        } else {
-            detector = new FroyoGestureDetector(context);
-        }
+    boolean isScaling();
 
-        detector.setOnGestureListener(listener);
+    boolean isDragging();
 
-        return detector;
-    }
+    void setOnGestureListener(OnGestureListener listener);
 
 }
