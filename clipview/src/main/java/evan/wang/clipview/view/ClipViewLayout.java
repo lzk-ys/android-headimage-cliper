@@ -74,6 +74,7 @@ public class ClipViewLayout extends RelativeLayout implements OnGestureListener 
     private float minScale;
     //最大缩放比例
     private float maxScale = 3;
+    private static final int DEFAULT_ZOOM_DURATION = 200; //边界回弹时间
 
     private GestureDetector mScaleDragDetector;  //监听拖拽和缩放事件
 
@@ -343,16 +344,16 @@ public class ClipViewLayout extends RelativeLayout implements OnGestureListener 
                 case ACTION_UP:
                     // If the user has zoomed less than min scale, zoom back
                     // to min scale
-                    if (getScale() < minScale || getScale() > maxScale) {  //缩放回弹
-                        float targetScale = getScale() < minScale ? minScale : maxScale;
-                        RectF rect = getMatrixRectF(matrix);
-                        if (null != rect) {
-                            startScaleAnimation(getScale(),targetScale,rect.centerX(),rect.centerY());
-                            handled = true;
-                        }
+                    if (getScale() < minScale) {  //缩小回弹
+                        startZoomInAnimation(getScale(),minScale,mid.x,mid.y);
+                        handled = true;
+                    }else if(getScale() > maxScale){ //放大回弹
+                        startZoomOutAnimation(getScale(),maxScale,mid.x,mid.y);
+                        handled = true;
                     }else if(checkBorder()){  //拖拽回弹
                         matrix.postTranslate(-translateValues[0],-translateValues[1]);
                         startDragAnimation(translateValues[0],translateValues[1]);
+                        handled = true;
                     }
                     break;
             }
@@ -392,6 +393,7 @@ public class ClipViewLayout extends RelativeLayout implements OnGestureListener 
         mVerticalPadding = clipView.getClipRect().top;
         matrix.postScale(scaleFactor, scaleFactor, focusX, focusY);
         imageView.setImageMatrix(matrix);
+        mid.set(focusX,focusY); //记录缩放的中心点，用于回弹效果
     }
 
     /**
@@ -405,8 +407,11 @@ public class ClipViewLayout extends RelativeLayout implements OnGestureListener 
 
     }
 
-    private static final int DEFAULT_ZOOM_DURATION = 200;
-
+    /**
+     * 拖拽回弹
+     * @param deltaX
+     * @param deltaY
+     */
     private void startDragAnimation(final float deltaX, final float deltaY)
     {
         ValueAnimator valueAnimator = ValueAnimator.ofFloat(0, 1);
@@ -432,7 +437,14 @@ public class ClipViewLayout extends RelativeLayout implements OnGestureListener 
         valueAnimator.start();
     }
 
-    private void startScaleAnimation(final float currentZoom, final float targetZoom, final float focalX, final float focalY)
+    /**
+     * 缩小回弹
+     * @param currentZoom
+     * @param targetZoom
+     * @param focalX
+     * @param focalY
+     */
+    private void startZoomInAnimation(final float currentZoom, final float targetZoom, final float focalX, final float focalY)
     {
         Rect rect = clipView.getClipRect();
         final float centerX = rect.width()/2f + rect.left;
@@ -456,6 +468,38 @@ public class ClipViewLayout extends RelativeLayout implements OnGestureListener 
                     Log.d(TAG,"onAnimationUpdate progress = "+progress+" deltaScale = "+deltaScale +" getScale() = "+getScale() +" centerX = "+centerX+" centerY = "+centerY +" deltaX = "+deltaX+" deltaY = "+deltaY+" curX = "+rect.centerX()+" curY = "+rect.centerY());
                     matrix.postTranslate(deltaX,deltaY);
                     matrix.postScale(deltaScale,deltaScale,deltaX, deltaY);
+                    imageView.setImageMatrix(matrix);
+                    if(progress == 1){
+                        checkBorder();
+                        imageView.setImageMatrix(matrix);
+                    }
+                }
+            }
+        });
+        valueAnimator.start();
+    }
+
+    /**
+     * 放大回弹
+     * @param currentZoom
+     * @param targetZoom
+     * @param focalX
+     * @param focalY
+     */
+    private void startZoomOutAnimation(final float currentZoom, final float targetZoom, final float focalX, final float focalY)
+    {
+        ValueAnimator valueAnimator = ValueAnimator.ofFloat(0, 1);
+        valueAnimator.setDuration(DEFAULT_ZOOM_DURATION);
+        valueAnimator.setInterpolator(new AccelerateInterpolator());
+        valueAnimator.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
+            @Override
+            public void onAnimationUpdate(ValueAnimator animation) {
+                float progress = (Float) animation.getAnimatedValue();
+                float scale = currentZoom + progress * (targetZoom - currentZoom);
+                float deltaScale = scale / getScale();
+                if(progress <= 1){
+                    Log.d(TAG,"startZoomOutAnimation progress = "+progress+" deltaScale = "+deltaScale +" getScale() = "+getScale());
+                    matrix.postScale(deltaScale,deltaScale,focalX, focalY);
                     imageView.setImageMatrix(matrix);
                     if(progress == 1){
                         checkBorder();
