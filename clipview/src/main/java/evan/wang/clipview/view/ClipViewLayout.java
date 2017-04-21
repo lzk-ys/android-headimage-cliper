@@ -71,7 +71,7 @@ public class ClipViewLayout extends RelativeLayout implements OnGestureListener 
     //用于存放矩阵的9个值
     private final float[] matrixValues = new float[9];
     //最小缩放比例
-    private float minScale;
+    private float minScale = 1;
     //最大缩放比例
     private float maxScale = 3;
     private static final int DEFAULT_ZOOM_DURATION = 200; //边界回弹时间
@@ -195,6 +195,7 @@ public class ClipViewLayout extends RelativeLayout implements OnGestureListener 
         }
         // 缩放
         matrix.postScale(scale, scale);
+        maxScale = minScale * maxScale;
         // 平移,将缩放后的图片平移到imageview的中心
         //imageView的中心x
         int midX = imageView.getWidth() / 2;
@@ -243,82 +244,6 @@ public class ClipViewLayout extends RelativeLayout implements OnGestureListener 
         }
         return degree;
     }
-
-
-   /* @Override
-    public boolean onTouchEvent(MotionEvent event) {
-        switch (event.getAction() & MotionEvent.ACTION_MASK) {
-            case MotionEvent.ACTION_DOWN:
-                savedMatrix.set(matrix);
-                //设置开始点位置
-                start.set(event.getX(), event.getY());
-                mode = DRAG;
-                break;
-            case MotionEvent.ACTION_POINTER_DOWN:
-                //开始放下时候两手指间的距离
-                oldDist = spacing(event);
-                if (oldDist > 10f) {
-                    savedMatrix.set(matrix);
-                    midPoint(mid, event);
-                    mode = ZOOM;
-                }
-                break;
-            case MotionEvent.ACTION_UP:
-                // If the user has zoomed less than min scale, zoom back
-                // to min scale
-                if (getScale() < minScale) {
-                    RectF rect = getMatrixRectF(matrix);
-                    if (null != rect) {
-                        startScaleAnimation(getScale(),minScale,rect.centerX(),rect.centerY());
-                    }
-                }
-                break;
-            case MotionEvent.ACTION_POINTER_UP:
-                mode = NONE;
-                break;
-            case MotionEvent.ACTION_MOVE:
-                if (mode == DRAG) { //拖动
-*//*                    matrix.set(savedMatrix);
-                    float dx = event.getX() - start.x;
-                    float dy = event.getY() - start.y;
-                    mVerticalPadding = clipView.getClipRect().top;
-                    matrix.postTranslate(dx, dy);
-                    //检查边界
-                    checkBorder();*//*
-                } else if (mode == ZOOM) { //缩放
-                    //缩放后两手指间的距离
-                    float newDist = spacing(event);
-                    if (newDist > 10f) {
-                        //手势缩放比例
-                        float scale = newDist / oldDist;
-                        if (scale < 1) { //缩小
-//                            if (getScale() > minScale) {
-                                matrix.set(savedMatrix);
-                                mVerticalPadding = clipView.getClipRect().top;
-                                matrix.postScale(scale, scale, mid.x, mid.y);
-                                //缩放到最小范围下面去了，则返回到最小范围大小
-     *//*                           while (getScale() < minScale) {
-                                    //返回到最小范围的放大比例
-                                    scale = 1 + 0.01F;
-                                    matrix.postScale(scale, scale, mid.x, mid.y);
-                                }*//*
-//                            }
-                            //边界检查
-//                            checkBorder();
-                        } else { //放大
-                            if (getScale() <= maxScale) {
-                                matrix.set(savedMatrix);
-                                mVerticalPadding = clipView.getClipRect().top;
-                                matrix.postScale(scale, scale, mid.x, mid.y);
-                            }
-                        }
-                    }
-                }
-                imageView.setImageMatrix(matrix);
-                break;
-        }
-        return true;
-    }*/
 
     @Override
     public boolean onTouchEvent(MotionEvent ev) {
@@ -431,6 +356,10 @@ public class ClipViewLayout extends RelativeLayout implements OnGestureListener 
                     imageView.setImageMatrix(matrix);
                     prevX += dX;
                     prevY += dY;
+                    if(progress == 1){
+                        checkBorder();
+                        imageView.setImageMatrix(matrix);
+                    }
                 }
             }
         });
